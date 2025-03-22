@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>這個直接抓去電死急急棒系統</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        body {
+            background: linear-gradient(135deg, #0d1b2a, #1b263b);
+            margin: 0;
+            padding: 20px;
+            font-family: 'Orbitron', sans-serif;
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .game-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(10, 10, 10, 0.85);
+            border: 2px solid #00ffcc;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 0 15px #00ffcc, 0 0 30px #ff00ff;
+            position: relative;
+        }
+        canvas {
+            border: 2px solid #ff00ff;
+            border-radius: 5px;
+            background: #1a1a1a;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 0 10px #ff00ff;
+            width: 100%;
+            max-width: 800px;
+            height: 300px;
+        }
+        h1 {
+            color: #00ffcc;
+            text-align: center;
+            text-shadow: 0 0 5px #00ffcc, 0 0 10px #ff00ff;
+            font-size: 28px;
+            letter-spacing: 2px;
+            margin: 10px 0;
+        }
+        #info-panel {
+            display: flex;
+            flex-direction: row; /* 水平排列 */
+            justify-content: center; /* 水平居中 */
+            flex-wrap: nowrap; /* 禁止換行 */
+            margin: 10px 0;
+            color: #00ffcc;
+            font-size: 16px;
+            gap: 10px; /* 欄位之間的間距 */
+        }
+        #playerName-display, #level-display, #time-display, #score-display {
+            padding: 5px 10px;
+            background: rgba(0, 255, 204, 0.1);
+            border: 1px solid #00ffcc;
+            border-radius: 5px;
+            text-shadow: 0 0 5px #00ffcc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap; /* 防止文字換行 */
+        }
+        #playerName-display i, #level-display i, #time-display i, #score-display i {
+            font-size: 16px;
+        }
+        #message {
+            color: #ff00ff;
+            font-size: 16px;
+            text-align: center;
+            margin: 10px 0;
+            min-height: 20px;
+            text-shadow: 0 0 5px #ff00ff;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: nowrap;
+            margin-top: 10px;
+            gap: 5px;
+        }
+        button {
+            font-size: 12px;
+            padding: 6px 12px;
+            border: 1px solid #00ffcc;
+            border-radius: 5px;
+            background: rgba(0, 255, 204, 0.2);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-shadow: 0 0 5px #00ffcc;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        button i {
+            font-size: 14px;
+        }
+        button:hover {
+            background: rgba(0, 255, 204, 0.5);
+            box-shadow: 0 0 10px #00ffcc;
+            transform: scale(1.05);
+        }
+        #startButton { border-color: #00ffcc; }
+        #nextButton { border-color: #ff00ff; }
+        #restartButton { border-color: #ff4444; }
+        #resetGameButton { border-color: #ff00ff; }
+        #screenshotButton { border-color: #ffff00; }
+        footer {
+            color: #00ffcc;
+            text-align: center;
+            font-size: 14px;
+            text-shadow: 0 0 5px #00ffcc;
+            padding: 10px 0;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: rgba(10, 10, 10, 0.9);
+            border: 2px solid #00ffcc;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 0 15px #00ffcc;
+            width: 300px;
+        }
+        .modal-content h2 {
+            color: #00ffcc;
+            text-shadow: 0 0 5px #00ffcc;
+            margin-bottom: 15px;
+        }
+        .modal-content input {
+            padding: 8px;
+            margin: 10px 0;
+            border: 1px solid #00ffcc;
+            border-radius: 5px;
+            background: rgba(0, 255, 204, 0.1);
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            width: 80%;
+        }
+        .modal-content button {
+            background: rgba(0, 255, 204, 0.2);
+            border: 1px solid #00ffcc;
+            color: #fff;
+            padding: 8px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .modal-content button:hover {
+            background: rgba(0, 255, 204, 0.5);
+            box-shadow: 0 0 10px #00ffcc;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="game-container">
+        <h1>這個直接抓去電死急急棒系統</h1>
+        <div id="info-panel">
+            <div id="playerName-display"><i class="fas fa-user"></i> 玩家名稱：神玩家</div>
+            <div id="level-display"><i class="fas fa-layer-group"></i> 目前關卡：1</div>
+            <div id="time-display"><i class="fas fa-clock"></i> 剩餘時間：30</div>
+            <div id="score-display"><i class="fas fa-star"></i> 累積得分：0</div>
+        </div>
+        <canvas id="gameCanvas" width="800" height="300"></canvas>
+        <div id="message"></div>
+        <div class="button-container">
+            <button id="startButton"><i class="fas fa-play"></i> 啟動遊戲</button>
+            <button id="nextButton" style="display: none;"><i class="fas fa-forward"></i> 下一關卡</button>
+            <button id="restartButton" style="display: none;"><i class="fas fa-redo"></i> 重啟此關</button>
+            <button id="resetGameButton" style="display: none;"><i class="fas fa-undo"></i> 重啟遊戲</button>
+            <button id="screenshotButton"><i class="fas fa-camera"></i> 畫面截圖</button>
+        </div>
+    </div>
+    <footer>Copyright © Liyuchiutiger Gongminshen</footer>
+
+    <div id="nameModal" class="modal">
+        <div class="modal-content">
+            <h2>請輸入你的姓名</h2>
+            <input type="text" id="playerNameInput" placeholder="輸入姓名">
+            <br>
+            <button id="submitNameButton"><i class="fas fa-check"></i> 送出</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const message = document.getElementById('message');
+        const playerNameDisplay = document.getElementById('playerName-display');
+        const levelDisplay = document.getElementById('level-display');
+        const timeDisplay = document.getElementById('time-display');
+        const scoreDisplay = document.getElementById('score-display');
+        const startButton = document.getElementById('startButton');
+        const nextButton = document.getElementById('nextButton');
+        const restartButton = document.getElementById('restartButton');
+        const resetGameButton = document.getElementById('resetGameButton');
+        const screenshotButton = document.getElementById('screenshotButton');
+        const gameContainer = document.querySelector('.game-container');
+        const nameModal = document.getElementById('nameModal');
+        const playerNameInput = document.getElementById('playerNameInput');
+        const submitNameButton = document.getElementById('submitNameButton');
+        
+        let playerName = '神玩家';
+        let currentLevel = 1;
+        let playerPos = { x: 400, y: 150 };
+        let hasRod = false;
+        let gameOver = false;
+        let gameStarted = false;
+        let timeLeft = 30;
+        let score = 0;
+        let timer;
+        let animationFrame;
+        let bonuses = [];
+        let extraObstacles = [];
+
+        const levels = Array.from({length: 20}, (_, i) => {
+            let walls = [];
+            let complexity = 8 + Math.floor(i / 2);
+            let lastX = 80;
+            let minGap = 20;
+            
+            for (let j = 0; j < complexity; j++) {
+                if (lastX < 720) {
+                    let type = Math.random();
+                    if (type < 0.4) {
+                        walls.push({
+                            x: lastX,
+                            y: 150,
+                            w: 60 + i * 5,
+                            h: 15,
+                            type: 'rotate',
+                            angle: 0,
+                            speed: (Math.random() - 0.5) * 0.1
+                        });
+                        lastX += 80 + minGap;
+                    } else if (type < 0.7) {
+                        walls.push({
+                            x: lastX,
+                            y: 75 + Math.random() * 150,
+                            w: 25,
+                            h: 120 + i * 8,
+                            type: 'move',
+                            speed: (Math.random() - 0.5) * 4,
+                            originalY: 75 + Math.random() * 150
+                        });
+                        lastX += 45 + minGap;
+                    } else {
+                        let height = 120 + Math.random() * 80 + i * 8;
+                        walls.push({
+                            x: lastX,
+                            y: Math.random() > 0.5 ? 0 : 300 - height,
+                            w: 20,
+                            h: height,
+                            type: 'static'
+                        });
+                        lastX += 35 + minGap;
+                    }
+                }
+            }
+            walls.push({x: lastX, y: 140, w: 760 - lastX, h: 20, type: 'static'});
+
+            bonuses[i] = [
+                { x: 100 + Math.random() * 200, y: 50 + Math.random() * 200, collected: false },
+                { x: 350 + Math.random() * 200, y: 50 + Math.random() * 200, collected: false },
+                { x: 600 + Math.random() * 150, y: 50 + Math.random() * 200, collected: false }
+            ];
+
+            extraObstacles[i] = {
+                x: 200 + Math.random() * 400,
+                y: 100 + Math.random() * 100,
+                w: 40 + i * 5,
+                h: 20,
+                speed: (Math.random() - 0.5) * 5
+            };
+
+            return walls;
+        });
+
+        function drawStar(x, y) {
+            ctx.fillStyle = '#ffff00';
+            ctx.beginPath();
+            const outerRadius = 10;
+            const innerRadius = 5;
+            const spikes = 5;
+            for (let i = 0; i < spikes * 2; i++) {
+                const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                const angle = (Math.PI / spikes) * i - Math.PI / 2;
+                ctx.lineTo(
+                    x + radius * Math.cos(angle),
+                    y + radius * Math.sin(angle)
+                );
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawLevel() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#ff00ff';
+            levels[currentLevel - 1].forEach(wall => {
+                ctx.save();
+                if (wall.type === 'rotate') {
+                    wall.angle += wall.speed;
+                    ctx.translate(wall.x + wall.w / 2, wall.y + wall.h / 2);
+                    ctx.rotate(wall.angle);
+                    ctx.fillRect(-wall.w / 2, -wall.h / 2, wall.w, wall.h);
+                } else if (wall.type === 'move') {
+                    wall.y += wall.speed;
+                    if (wall.y < 20 || wall.y + wall.h > 280) wall.speed = -wall.speed;
+                    ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
+                } else {
+                    ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
+                }
+                ctx.restore();
+            });
+
+            const extra = extraObstacles[currentLevel - 1];
+            ctx.fillStyle = '#ff00ff';
+            extra.x += extra.speed;
+            if (extra.x < 50 || extra.x + extra.w > 750) extra.speed = -extra.speed;
+            ctx.fillRect(extra.x, extra.y, extra.w, extra.h);
+
+            ctx.fillStyle = '#00ffcc';
+            ctx.fillRect(20, 130, 20, 40);
+            ctx.fillStyle = '#ff4444';
+            ctx.fillRect(760, 130, 20, 40);
+
+            bonuses[currentLevel - 1].forEach(bonus => {
+                if (!bonus.collected) {
+                    drawStar(bonus.x, bonus.y);
+                }
+            });
+
+            ctx.fillStyle = hasRod ? '#00ffcc' : '#ffffff';
+            ctx.beginPath();
+            ctx.arc(playerPos.x, playerPos.y, 8, 0, Math.PI * 2);
+            ctx.fill();
+            if (hasRod) {
+                ctx.strokeStyle = '#ffff00';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        function checkCollision() {
+            if (!hasRod) {
+                if (playerPos.x < 40 && playerPos.y >= 130 && playerPos.y <= 170) {
+                    hasRod = true;
+                    message.textContent = '棒子已啟動，前往終點！';
+                }
+                return false;
+            }
+
+            if (hasRod) {
+                const imageData = ctx.getImageData(playerPos.x - 8, playerPos.y - 8, 16, 16);
+                for (let i = 0; i < imageData.data.length; i += 4) {
+                    if (imageData.data[i] === 255 && imageData.data[i + 1] === 0 && imageData.data[i + 2] === 255) {
+                        return true;
+                    }
+                }
+                if (playerPos.x > 760 && playerPos.y >= 130 && playerPos.y <= 170) {
+                    return 'win';
+                }
+
+                bonuses[currentLevel - 1].forEach((bonus, index) => {
+                    const distance = Math.sqrt(
+                        Math.pow(playerPos.x - bonus.x, 2) + Math.pow(playerPos.y - bonus.y, 2)
+                    );
+                    if (!bonus.collected && distance < 18) {
+                        bonus.collected = true;
+                        score += 50;
+                        scoreDisplay.innerHTML = `<i class="fas fa-star"></i> 累積得分：${score}`;
+                        message.textContent = '獲得額外 50 分！';
+                    }
+                });
+            }
+            return false;
+        }
+
+        function startTimer() {
+            clearInterval(timer);
+            timer = setInterval(() => {
+                timeLeft--;
+                timeDisplay.innerHTML = `<i class="fas fa-clock"></i> 剩餘時間：${timeLeft}`;
+                if (timeLeft <= 0) {
+                    gameOver = true;
+                    clearInterval(timer);
+                    cancelAnimationFrame(animationFrame);
+                    message.textContent = '時間耗盡！';
+                    showRestartButton();
+                }
+            }, 1000);
+        }
+
+        function animate() {
+            if (!gameOver && gameStarted) {
+                drawLevel();
+                const collision = checkCollision();
+                if (collision === true) {
+                    gameOver = true;
+                    clearInterval(timer);
+                    cancelAnimationFrame(animationFrame);
+                    message.textContent = '電流擊中！';
+                    showRestartButton();
+                } else if (collision === 'win') {
+                    gameOver = true;
+                    clearInterval(timer);
+                    cancelAnimationFrame(animationFrame);
+                    score += 100;
+                    scoreDisplay.innerHTML = `<i class="fas fa-star"></i> 累積得分：${score}`;
+                    message.textContent = currentLevel < levels.length ? '關卡完成！進入下一關' : '恭喜破解所有20關！';
+                    nextButton.style.display = currentLevel < levels.length ? 'inline' : 'none';
+                    restartButton.style.display = 'inline';
+                }
+                animationFrame = requestAnimationFrame(animate);
+            }
+        }
+
+        function showRestartButton() {
+            startButton.style.display = 'none';
+            nextButton.style.display = 'none';
+            restartButton.style.display = 'inline';
+        }
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!gameOver && gameStarted) {
+                const rect = canvas.getBoundingClientRect();
+                playerPos.x = Math.max(8, Math.min(canvas.width - 8, e.clientX - rect.left));
+                playerPos.y = Math.max(8, Math.min(canvas.height - 8, e.clientY - rect.top));
+                handleInput();
+            }
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!gameOver && gameStarted) {
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                playerPos.x = Math.max(8, Math.min(canvas.width - 8, touch.clientX - rect.left));
+                playerPos.y = Math.max(8, Math.min(canvas.height - 8, touch.clientY - rect.top));
+                handleInput();
+            }
+        }, { passive: false });
+
+        function handleInput() {
+            drawLevel();
+            const collision = checkCollision();
+            if (collision === true) {
+                gameOver = true;
+                clearInterval(timer);
+                cancelAnimationFrame(animationFrame);
+                message.textContent = '電流擊中！';
+                showRestartButton();
+            } else if (collision === 'win') {
+                gameOver = true;
+                clearInterval(timer);
+                cancelAnimationFrame(animationFrame);
+                score += 100;
+                scoreDisplay.innerHTML = `<i class="fas fa-star"></i> 累積得分：${score}`;
+                message.textContent = currentLevel < levels.length ? '關卡完成！進入下一關' : '恭喜破解所有20關！';
+                nextButton.style.display = currentLevel < levels.length ? 'inline' : 'none';
+                restartButton.style.display = 'inline';
+            }
+        }
+
+        startButton.addEventListener('click', () => {
+            nameModal.style.display = 'flex';
+        });
+
+        submitNameButton.addEventListener('click', () => {
+            const inputName = playerNameInput.value.trim();
+            playerName = inputName === '' ? '神玩家' : inputName;
+            playerNameDisplay.innerHTML = `<i class="fas fa-user"></i> 玩家名稱：${playerName}`;
+            levelDisplay.innerHTML = `<i class="fas fa-layer-group"></i> 目前關卡：${currentLevel}`;
+            nameModal.style.display = 'none';
+            resetLevel();
+            startButton.style.display = 'none';
+            resetGameButton.style.display = 'inline';
+            gameStarted = true;
+            animate();
+        });
+
+        nextButton.addEventListener('click', () => {
+            currentLevel++;
+            resetLevel();
+            nextButton.style.display = 'none';
+            gameStarted = true;
+            animate();
+        });
+
+        restartButton.addEventListener('click', () => {
+            resetLevel();
+            restartButton.style.display = 'none';
+            gameStarted = true;
+            animate();
+        });
+
+        resetGameButton.addEventListener('click', () => {
+            currentLevel = 1;
+            score = 0;
+            resetLevel();
+            restartButton.style.display = 'none';
+            nextButton.style.display = 'none';
+            gameStarted = true;
+            animate();
+        });
+
+        screenshotButton.addEventListener('click', () => {
+            drawLevel();
+
+            const tempContainer = document.createElement('div');
+            tempContainer.style.position = 'absolute';
+            tempContainer.style.top = '-9999px';
+            tempContainer.style.background = 'linear-gradient(135deg, #0d1b2a, #1b263b)';
+            tempContainer.style.padding = '20px';
+            tempContainer.style.width = 'fit-content';
+            document.body.appendChild(tempContainer);
+
+            const gameClone = gameContainer.cloneNode(true);
+            const footerClone = document.querySelector('footer').cloneNode(true);
+            tempContainer.appendChild(gameClone);
+            tempContainer.appendChild(footerClone);
+
+            const clonedCanvas = gameClone.querySelector('canvas');
+            const clonedCtx = clonedCanvas.getContext('2d');
+            clonedCtx.drawImage(canvas, 0, 0);
+
+            gameClone.style.border = '2px solid #00ffcc';
+            gameClone.style.borderRadius = '10px';
+            gameClone.style.boxShadow = '0 0 15px #00ffcc, 0 0 30px #ff00ff';
+            gameClone.style.background = 'rgba(10, 10, 10, 0.85)';
+            clonedCanvas.style.border = '2px solid #ff00ff';
+            clonedCanvas.style.borderRadius = '5px';
+            clonedCanvas.style.boxShadow = '0 0 10px #ff00ff';
+            clonedCanvas.style.background = '#1a1a1a';
+
+            html2canvas(tempContainer, {
+                backgroundColor: null,
+                scale: 2,
+                useCORS: true,
+                logging: true
+            }).then(canvas => {
+                const dataURL = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.href = dataURL;
+                link.download = `game_screenshot_${Date.now()}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                document.body.removeChild(tempContainer);
+            }).catch(err => {
+                console.error('截圖失敗:', err);
+                alert('截圖失敗，請重試！');
+            });
+        });
+
+        function resetLevel() {
+            playerPos = { x: 400, y: 150 };
+            hasRod = false;
+            gameOver = false;
+            gameStarted = true;
+            timeLeft = Math.max(15, 30 - Math.floor(currentLevel / 2));
+            playerNameDisplay.innerHTML = `<i class="fas fa-user"></i> 玩家名稱：${playerName}`;
+            levelDisplay.innerHTML = `<i class="fas fa-layer-group"></i> 目前關卡：${currentLevel}`;
+            timeDisplay.innerHTML = `<i class="fas fa-clock"></i> 剩餘時間：${timeLeft}`;
+            scoreDisplay.innerHTML = `<i class="fas fa-star"></i> 累積得分：${score}`;
+            message.textContent = '前往左邊啟動棒子！';
+            levels[currentLevel - 1].forEach(wall => {
+                if (wall.type === 'rotate') wall.angle = 0;
+                if (wall.type === 'move') wall.y = wall.originalY;
+            });
+            bonuses[currentLevel - 1].forEach(bonus => bonus.collected = false);
+            drawLevel();
+            startTimer();
+        }
+
+        drawLevel();
+    </script>
+</body>
+</html>
