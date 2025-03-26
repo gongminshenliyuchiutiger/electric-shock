@@ -38,6 +38,7 @@
             width: 100%;
             max-width: 800px;
             height: 300px;
+            touch-action: none;
         }
         h1 {
             color: #00ffcc;
@@ -49,13 +50,13 @@
         }
         #info-panel {
             display: flex;
-            flex-direction: row; /* 水平排列 */
-            justify-content: center; /* 水平居中 */
-            flex-wrap: nowrap; /* 禁止換行 */
+            flex-direction: row;
+            justify-content: center;
+            flex-wrap: nowrap;
             margin: 10px 0;
             color: #00ffcc;
             font-size: 16px;
-            gap: 10px; /* 欄位之間的間距 */
+            gap: 10px;
         }
         #playerName-display, #level-display, #time-display, #score-display {
             padding: 5px 10px;
@@ -66,7 +67,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            white-space: nowrap; /* 防止文字換行 */
+            white-space: nowrap;
         }
         #playerName-display i, #level-display i, #time-display i, #score-display i {
             font-size: 16px;
@@ -174,6 +175,56 @@
             background: rgba(0, 255, 204, 0.5);
             box-shadow: 0 0 10px #00ffcc;
         }
+        #joystick-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 100px;
+            height: 100px;
+            display: none;
+        }
+        #joystick-base {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(45deg, #87ceeb, #ff00ff); /* 天藍到紫漸層 */
+            border-radius: 50%;
+            border: 2px solid #ff00ff;
+            opacity: 0.3;
+        }
+        #joystick-handle {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, #87ceeb, #ff00ff); /* 天藍到紫漸層 */
+            border-radius: 50%;
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            cursor: move;
+        }
+        .floating-button {
+            position: fixed;
+            bottom: 140px;
+            right: 20px;
+            z-index: 100;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            padding: 0;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid #ff00ff;
+            background: linear-gradient(45deg, #87ceeb, #ff00ff); /* 天藍到紫漸層 */
+            opacity: 0.7;
+        }
+        .floating-button i {
+            color: #fff;
+            text-shadow: 0 0 5px #ff00ff;
+        }
+        .floating-button:hover {
+            opacity: 1;
+            box-shadow: 0 0 10px #ff00ff;
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -208,6 +259,15 @@
         </div>
     </div>
 
+    <div id="joystick-container">
+        <div id="joystick-base"></div>
+        <div id="joystick-handle"></div>
+    </div>
+
+    <button id="toggleJoystickButton" class="floating-button">
+        <i class="fas fa-gamepad"></i>
+    </button>
+
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -225,19 +285,26 @@
         const nameModal = document.getElementById('nameModal');
         const playerNameInput = document.getElementById('playerNameInput');
         const submitNameButton = document.getElementById('submitNameButton');
+        const toggleJoystickButton = document.getElementById('toggleJoystickButton');
         
         let playerName = '神玩家';
         let currentLevel = 1;
         let playerPos = { x: 400, y: 150 };
+        let lastPlayerPos = { x: 400, y: 150 };
         let hasRod = false;
         let gameOver = false;
         let gameStarted = false;
         let timeLeft = 30;
         let score = 0;
+        let currentLevelScore = 0;
         let timer;
         let animationFrame;
         let bonuses = [];
         let extraObstacles = [];
+        let useJoystick = false;
+        let joystickActive = false;
+        let isMouseDown = false;
+        let isTouchActive = false;
 
         const levels = Array.from({length: 20}, (_, i) => {
             let walls = [];
@@ -370,6 +437,17 @@
         }
 
         function checkCollision() {
+            const maxSpeed = 5;
+            const dx = playerPos.x - lastPlayerPos.x;
+            const dy = playerPos.y - lastPlayerPos.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > maxSpeed) {
+                const angle = Math.atan2(dy, dx);
+                playerPos.x = lastPlayerPos.x + Math.cos(angle) * maxSpeed;
+                playerPos.y = lastPlayerPos.y + Math.sin(angle) * maxSpeed;
+            }
+            lastPlayerPos = { x: playerPos.x, y: playerPos.y };
+
             if (!hasRod) {
                 if (playerPos.x < 40 && playerPos.y >= 130 && playerPos.y <= 170) {
                     hasRod = true;
@@ -381,7 +459,9 @@
             if (hasRod) {
                 const imageData = ctx.getImageData(playerPos.x - 8, playerPos.y - 8, 16, 16);
                 for (let i = 0; i < imageData.data.length; i += 4) {
-                    if (imageData.data[i] === 255 && imageData.data[i + 1] === 0 && imageData.data[i + 2] === 255) {
+                    if (imageData.data[i] === 255 && 
+                        imageData.data[i + 1] === 0 && 
+                        imageData.data[i + 2] === 255) {
                         return true;
                     }
                 }
@@ -395,6 +475,7 @@
                     );
                     if (!bonus.collected && distance < 18) {
                         bonus.collected = true;
+                        currentLevelScore += 50;
                         score += 50;
                         scoreDisplay.innerHTML = `<i class="fas fa-star"></i> 累積得分：${score}`;
                         message.textContent = '獲得額外 50 分！';
@@ -414,6 +495,9 @@
                     clearInterval(timer);
                     cancelAnimationFrame(animationFrame);
                     message.textContent = '時間耗盡！';
+                    score -= currentLevelScore;
+                    currentLevelScore = 0;
+                    scoreDisplay.innerHTML = `<i class="fas fa-star"></i> 累積得分：${score}`;
                     showRestartButton();
                 }
             }, 1000);
@@ -428,16 +512,21 @@
                     clearInterval(timer);
                     cancelAnimationFrame(animationFrame);
                     message.textContent = '電流擊中！';
+                    score -= currentLevelScore;
+                    currentLevelScore = 0;
+                    scoreDisplay.innerHTML = `<i class="fas fa-star"></i> 累積得分：${score}`;
                     showRestartButton();
                 } else if (collision === 'win') {
                     gameOver = true;
                     clearInterval(timer);
                     cancelAnimationFrame(animationFrame);
+                    currentLevelScore += 100;
                     score += 100;
                     scoreDisplay.innerHTML = `<i class="fas fa-star"></i> 累積得分：${score}`;
                     message.textContent = currentLevel < levels.length ? '關卡完成！進入下一關' : '恭喜破解所有20關！';
                     nextButton.style.display = currentLevel < levels.length ? 'inline' : 'none';
                     restartButton.style.display = 'inline';
+                    resetGameButton.style.display = 'inline';
                 }
                 animationFrame = requestAnimationFrame(animate);
             }
@@ -447,47 +536,132 @@
             startButton.style.display = 'none';
             nextButton.style.display = 'none';
             restartButton.style.display = 'inline';
+            resetGameButton.style.display = 'inline';
         }
 
-        canvas.addEventListener('mousemove', (e) => {
-            if (!gameOver && gameStarted) {
+        // 改進輸入處理
+        function updatePlayerPosition(x, y) {
+            if (!gameOver && gameStarted && !useJoystick) {
                 const rect = canvas.getBoundingClientRect();
-                playerPos.x = Math.max(8, Math.min(canvas.width - 8, e.clientX - rect.left));
-                playerPos.y = Math.max(8, Math.min(canvas.height - 8, e.clientY - rect.top));
-                handleInput();
+                playerPos.x = Math.max(8, Math.min(canvas.width - 8, x - rect.left));
+                playerPos.y = Math.max(8, Math.min(canvas.height - 8, y - rect.top));
+                drawLevel();
+                checkCollision();
+            }
+        }
+
+        // 滑鼠控制
+        canvas.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            updatePlayerPosition(e.clientX, e.clientY);
+            console.log('Mouse down at:', playerPos.x, playerPos.y);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isMouseDown) {
+                updatePlayerPosition(e.clientX, e.clientY);
+                console.log('Mouse move to:', playerPos.x, playerPos.y);
             }
         });
 
+        canvas.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isMouseDown = false; // 防止滑鼠離開後仍保持按下狀態
+        });
+
+        // 觸控控制
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isTouchActive = true;
+            const touch = e.touches[0];
+            updatePlayerPosition(touch.clientX, touch.clientY);
+            console.log('Touch start at:', playerPos.x, playerPos.y);
+        }, { passive: false });
+
         canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
-            if (!gameOver && gameStarted) {
-                const rect = canvas.getBoundingClientRect();
+            if (isTouchActive) {
                 const touch = e.touches[0];
-                playerPos.x = Math.max(8, Math.min(canvas.width - 8, touch.clientX - rect.left));
-                playerPos.y = Math.max(8, Math.min(canvas.height - 8, touch.clientY - rect.top));
-                handleInput();
+                updatePlayerPosition(touch.clientX, touch.clientY);
+                console.log('Touch move to:', playerPos.x, playerPos.y);
             }
         }, { passive: false });
 
-        function handleInput() {
-            drawLevel();
-            const collision = checkCollision();
-            if (collision === true) {
-                gameOver = true;
-                clearInterval(timer);
-                cancelAnimationFrame(animationFrame);
-                message.textContent = '電流擊中！';
-                showRestartButton();
-            } else if (collision === 'win') {
-                gameOver = true;
-                clearInterval(timer);
-                cancelAnimationFrame(animationFrame);
-                score += 100;
-                scoreDisplay.innerHTML = `<i class="fas fa-star"></i> 累積得分：${score}`;
-                message.textContent = currentLevel < levels.length ? '關卡完成！進入下一關' : '恭喜破解所有20關！';
-                nextButton.style.display = currentLevel < levels.length ? 'inline' : 'none';
-                restartButton.style.display = 'inline';
+        canvas.addEventListener('touchend', () => {
+            isTouchActive = false;
+        });
+
+        canvas.addEventListener('touchcancel', () => {
+            isTouchActive = false; // 處理觸控意外中斷
+        });
+
+        // 搖桿控制
+        const joystickBase = document.getElementById('joystick-base');
+        const joystickHandle = document.getElementById('joystick-handle');
+
+        toggleJoystickButton.addEventListener('click', () => {
+            useJoystick = !useJoystick;
+            document.getElementById('joystick-container').style.display = useJoystick ? 'block' : 'none';
+            toggleJoystickButton.style.opacity = useJoystick ? '1' : '0.7';
+        });
+
+        joystickHandle.addEventListener('mousedown', startJoystick);
+        joystickHandle.addEventListener('touchstart', startJoystick);
+
+        function startJoystick(e) {
+            if (!useJoystick || gameOver || !gameStarted) return;
+            joystickActive = true;
+            e.preventDefault();
+            console.log('Joystick activated');
+        }
+
+        document.addEventListener('mousemove', moveJoystick);
+        document.addEventListener('touchmove', moveJoystick);
+        document.addEventListener('mouseup', stopJoystick);
+        document.addEventListener('touchend', stopJoystick);
+
+        function moveJoystick(e) {
+            if (!joystickActive || !useJoystick || gameOver || !gameStarted) return;
+            
+            const rect = joystickBase.getBoundingClientRect();
+            const centerX = rect.left + 50;
+            const centerY = rect.top + 50;
+            
+            let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            let clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+            
+            let dx = clientX - centerX;
+            let dy = clientY - centerY;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            let maxDistance = 30;
+            
+            if (distance > maxDistance) {
+                dx = dx * maxDistance / distance;
+                dy = dy * maxDistance / distance;
             }
+            
+            joystickHandle.style.left = (30 + dx) + 'px';
+            joystickHandle.style.top = (30 + dy) + 'px';
+            
+            const speed = 3;
+            playerPos.x += (dx / maxDistance) * speed;
+            playerPos.y += (dy / maxDistance) * speed;
+            
+            playerPos.x = Math.max(8, Math.min(canvas.width - 8, playerPos.x));
+            playerPos.y = Math.max(8, Math.min(canvas.height - 8, playerPos.y));
+            
+            console.log('Joystick move to:', playerPos.x, playerPos.y);
+            drawLevel();
+            checkCollision();
+        }
+
+        function stopJoystick() {
+            joystickActive = false;
+            joystickHandle.style.left = '30px';
+            joystickHandle.style.top = '30px';
         }
 
         startButton.addEventListener('click', () => {
@@ -503,6 +677,7 @@
             resetLevel();
             startButton.style.display = 'none';
             resetGameButton.style.display = 'inline';
+            toggleJoystickButton.style.display = 'flex';
             gameStarted = true;
             animate();
         });
@@ -516,6 +691,7 @@
         });
 
         restartButton.addEventListener('click', () => {
+            score -= currentLevelScore;
             resetLevel();
             restartButton.style.display = 'none';
             gameStarted = true;
@@ -525,9 +701,13 @@
         resetGameButton.addEventListener('click', () => {
             currentLevel = 1;
             score = 0;
+            currentLevelScore = 0;
             resetLevel();
+            startButton.style.display = 'none';
             restartButton.style.display = 'none';
             nextButton.style.display = 'none';
+            resetGameButton.style.display = 'inline';
+            toggleJoystickButton.style.display = 'flex';
             gameStarted = true;
             animate();
         });
@@ -583,10 +763,12 @@
 
         function resetLevel() {
             playerPos = { x: 400, y: 150 };
+            lastPlayerPos = { x: 400, y: 150 };
             hasRod = false;
             gameOver = false;
             gameStarted = true;
             timeLeft = Math.max(15, 30 - Math.floor(currentLevel / 2));
+            currentLevelScore = 0;
             playerNameDisplay.innerHTML = `<i class="fas fa-user"></i> 玩家名稱：${playerName}`;
             levelDisplay.innerHTML = `<i class="fas fa-layer-group"></i> 目前關卡：${currentLevel}`;
             timeDisplay.innerHTML = `<i class="fas fa-clock"></i> 剩餘時間：${timeLeft}`;
